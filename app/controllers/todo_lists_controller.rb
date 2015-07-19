@@ -9,7 +9,10 @@ class TodoListsController < ApplicationController
 
   # GET /todo_lists/1
   def show
-    render json: @todo_list, include: ['todos']
+    respond_to do |format|
+      format.html
+      format.json { render json: @todo_list, include: ['todos'] }
+    end
   end
 
   # POST /todo_lists
