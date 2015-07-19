@@ -35,21 +35,53 @@ jQuery(function ($) {
 				var store = localStorage.getItem(namespace);
 				return (store && JSON.parse(store)) || [];
 			}
+		},
+		push: function (data) {
+			$.ajax('/lists/1', {
+				dataType: 'json',
+				data: {
+					list: {
+						todos_attributes: data
+					}
+				},
+				method: 'PUT'
+			});
+		},
+		fetch: function (listId) {
+			return $.ajax('/lists/' + listId, {
+				dataType: 'json',
+				method: 'GET'
+			}).then(function (data) {
+				return data.included.map(function (todo) {
+					return {
+						id: todo.id,
+						completed: todo.attributes.is_completed,
+						title: todo.attributes.title
+					}
+				})
+			});
 		}
 	};
 
 	var App = {
 		init: function () {
-			this.todos = util.store('todos-jquery');
-			this.cacheElements();
-			this.bindEvents();
-
-			new Router({
+			var router = new Router({
 				'/:filter': function (filter) {
 					this.filter = filter;
 					this.render();
 				}.bind(this)
-			}).init('/all');
+			});
+
+			this.todos = util.store('todos-jquery');
+			this.deletedTodos = util.store('todos-deleted-jquery');
+			this.cacheElements();
+			this.bindEvents();
+
+			util.fetch(1).then(function (todos) {
+				App.todos = todos;
+				util.store('todos-jquery', todos);
+				router.init('/all');
+			});
 		},
 		cacheElements: function () {
 			this.todoTemplate = Handlebars.compile($('#todo-template').html());
@@ -77,11 +109,19 @@ jQuery(function ($) {
 		},
 		render: function () {
 			var todos = this.getFilteredTodos();
+			var todoAttributes = this.todos.map(function (todo) {
+				return {
+					id: todo.id,
+					is_completed: todo.completed,
+					title: todo.title
+				}
+			})
 			this.$todoList.html(this.todoTemplate(todos));
 			this.$main.toggle(todos.length > 0);
 			this.$toggleAll.prop('checked', this.getActiveTodos().length === 0);
 			this.renderFooter();
 			this.$newTodo.focus();
+			util.push(todoAttributes);
 			util.store('todos-jquery', this.todos);
 		},
 		renderFooter: function () {

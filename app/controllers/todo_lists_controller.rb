@@ -17,7 +17,7 @@ class TodoListsController < ApplicationController
 
   # POST /todo_lists
   def create
-    @todo_list = TodoList.new(todo_list_params)
+    @todo_list = TodoList.new
 
     if @todo_list.save
       render json: @todo_list, include: ['todos'], status: :created,
@@ -29,7 +29,7 @@ class TodoListsController < ApplicationController
 
   # PATCH/PUT /todo_lists/1
   def update
-    if @todo_list.update(todo_list_params)
+    if @todo_list.update_and_replace_todos(todo_list_params)
       render json: @todo_list, include: ['todos'], status: :ok,
         location: list_path(@todo_list)
     else
